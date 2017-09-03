@@ -140,6 +140,12 @@ app.post("/articles/:id", function(req, res) {
   });
 });
 
+app.get("/", function(req, res) {
+    console.log("Hitting the home route");
+    res.sendFile("public/index.html")
+})
+
+
 // Listen on port 3000
 app.listen(port, function() {
   console.log("App running on port 3000!");
