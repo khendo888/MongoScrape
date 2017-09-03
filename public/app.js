@@ -30,7 +30,7 @@ $(document).on("click", "p", function() {
       // A textarea to add a new note body
       $("#notes").append("<textarea id='bodyinput' name='body'></textarea>");
       // A button to submit a new note, with the id of the article saved to it
-      $("#notes").append("<button data-id='" + data._id + "' id='savenote'>Save Note</button>");
+      $("#notes").append("<button data-id='" + data._id + "' id='savenote'>Save Comment</button>");
 
       // If there's a note in the article
       if (data.note) {
@@ -70,4 +70,3 @@ $(document).on("click", "#savenote", function() {
   $("#titleinput").val("");
   $("#bodyinput").val("");
 });
-© 2017 GitHub, Inc.

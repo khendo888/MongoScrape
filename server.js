@@ -5,6 +5,7 @@ var mongoose = require("mongoose");
 
 // Requiring our Article models
 var Article = require("./models/Article.js");
+var Comment = require("./models/Comment.js");
 // Our scraping tools
 var request = require("request");
 var cheerio = require("cheerio");
@@ -14,36 +15,29 @@ mongoose.Promise = Promise;
 // Initialize Express
 var app = express();
 
-// Database configuration
-var databaseUrl = "scraper";
-var collections = ["scrapedData"];
+//Use Middleware (body parser) to 
+app.use(bodyParser.urlencoded({
+  extended: false
+}));
 
-// Hook mongo configuration to the db variable
+// Make public a static dir
+app.use(express.static("public"));
+
+// Hook mongoose configuration to the db variable
 mongoose.connect("mongodb://localhost/MongoScraper");
 var db = mongoose.connection;
 db.on("error", function(error) {
   console.log("Database Error:", error);
 });
+ db.once("open", function() {
+  console.log("Mongoose Connection Successful");
+ });
+// Main route (simple message)
+//app.get("/", function(req, res) {
+//  res.send("Hey, good looking, what's scraping?");
+//});
 
-// Main route (simple Hello World Message)
-app.get("/", function(req, res) {
-  res.send("Hey, good looking, what's scraping?");
-});
 
-// Retrieve data from the db
-app.get("/all", function(req, res) {
-  // Find all results from the scrapedData collection in the db
-  db.scrapedData.find({}, function(error, found) {
-    // Throw any errors to the console
-    if (error) {
-      console.log(error);
-    }
-    // If there are no errors, send the data to the browser as json
-    else {
-      res.json(found);
-    }
-  });
-});
 
 // Scrape data from one site and place it into the mongodb db
 app.get("/scrape", function(req, res) {
@@ -60,24 +54,19 @@ app.get("/scrape", function(req, res) {
 
       console.log(result.title);
       console.log(result.link);
-      // If this found element had both a title and a link
-      // if (title && link) {
-      //   // Insert the data in the scrapedData db
-      //   db.scrapedData.insert({
-      //     title: title,
-      //     link: link
-      //   },
-      //   function(err, inserted) {
-      //     if (err) {
-      //       // Log the error if one is encountered during the query
-      //       console.log(err);
-      //     }
-      //     else {
-      //       // Otherwise, log the inserted data
-      //       console.log(inserted);
-      //     }
-      //   });
-      // }
+
+      var entry = new Article(result);
+
+      //Save the entry to the DB
+      entry.save(function(err, doc) {
+        if (err) {
+          console.log(err);
+        }
+        else {
+          console.log(doc);
+        }
+      });
+
     });
   });
 
@@ -85,6 +74,69 @@ app.get("/scrape", function(req, res) {
   res.send("Scrape Complete");
 });
 
+//ROUTES
+
+// This will get the articles we scraped from the mongoDB
+app.get("/articles", function(req, res) {
+  // Grab every doc in the Articles array
+  Article.find({}, function(error, doc) {
+    // Log any errors
+    if (error) {
+      console.log(error);
+    }
+    // Or send the doc to the browser as a json object
+    else {
+      res.json(doc);
+    }
+  });
+});
+// Grab an article by it's ObjectId
+app.get("/articles/:id", function(req, res) {
+  // Using the id passed in the id parameter, prepare a query that finds the matching one in our db...
+  Article.findOne({ "_id": req.params.id })
+  // ..and populate all of the notes associated with it
+  .populate("comment")
+  // now, execute our query
+  .exec(function(error, doc) {
+    // Log any errors
+    if (error) {
+      console.log(error);
+    }
+    // Otherwise, send the doc to the browser as a json object
+    else {
+      res.json(doc);
+    }
+  });
+});
+// Create a new note or replace an existing note
+app.post("/articles/:id", function(req, res) {
+  // Create a new note and pass the req.body to the entry
+  var newComment = new Comment(req.body);
+
+  // And save the new note the db
+  newComment.save(function(error, doc) {
+    // Log any errors
+    if (error) {
+      console.log(error);
+    }
+    // Otherwise
+    else {
+      // Use the article id to find and update it's note
+      Article.findOneAndUpdate({ "_id": req.params.id }, { "comment": doc._id })
+      // Execute the above query
+      .exec(function(err, doc) {
+        // Log any errors
+        if (err) {
+          console.log(err);
+        }
+        else {
+          // Or send the document to the browser
+          res.send(doc);
+        }
+      });
+    }
+  });
+});
 
 // Listen on port 3000
 app.listen(3000, function() {
