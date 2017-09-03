@@ -24,7 +24,7 @@ app.use(bodyParser.urlencoded({
 app.use(express.static("public"));
 
 // Hook mongoose configuration to the db variable
-mongoose.connect("mongodb://localhost/MongoScraper");
+mongoose.connect("mongodb://heroku_dkx5lg2z:gk5id96ehc8v3huf32e08j6e4k@ds113063.mlab.com:13063/heroku_dkx5lg2z");
 var db = mongoose.connection;
 db.on("error", function(error) {
   console.log("Database Error:", error);
